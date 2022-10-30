@@ -3,7 +3,7 @@
     windows_subsystem = "windows"
 )]
 
-use std::{thread, time::Duration};
+use std::{io::Write, thread, time::Duration};
 mod menu;
 
 #[cfg(windows)]
@@ -14,6 +14,26 @@ fn toggle_desktop_icons_visable() {
     unsafe {
         #[cfg(windows)]
         window_api::ds2_toggle_show_desktop_icons();
+    }
+}
+
+#[tauri::command]
+async fn downloadFile(url: String, filename: String) {
+    use tauri::api::http::{ClientBuilder, HttpRequestBuilder, ResponseType};
+    let client = ClientBuilder::new().build().unwrap();
+    let response = client
+        .send(
+            HttpRequestBuilder::new("GET", url)
+                .unwrap()
+                .response_type(ResponseType::Binary),
+        )
+        .await;
+    if let Ok(response) = response {
+        let bytes = response.bytes().await;
+        if let Ok(bytes) = bytes {
+            let mut file = std::fs::File::create(filename).expect("create failed");
+            file.write_all(&bytes.data).expect("write failed");
+        }
     }
 }
 
@@ -41,7 +61,10 @@ fn main() {
             )
             .unwrap();
     })
-    .invoke_handler(tauri::generate_handler![toggle_desktop_icons_visable])
+    .invoke_handler(tauri::generate_handler![
+        toggle_desktop_icons_visable,
+        downloadFile
+    ])
     .setup(|_app| {
         unsafe {
             #[cfg(windows)]

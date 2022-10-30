@@ -12,8 +12,23 @@
   },
   "tauri": {
     "allowlist": {
+      "protocol": {
+        "asset": true,
+        "assetScope": [
+          "$APP/databases/*"
+        ]
+      },
       "shell": {
         "open": true
+      },
+      "path": {
+        "all": true
+      },
+      "fs": {
+        "all": true,
+        "scope": [
+          "$APP/databases/*"
+        ]
       },
       "http": {
         "all": true,
@@ -21,7 +36,8 @@
         "scope": [
           "https://wallhaven.cc/api/v1/*",
           "https://*.wallhaven.cc/*",
-          "https://pixabay.com/*"
+          "https://pixabay.com/*",
+          "https://cdn.pixabay.com/*"
         ]
       }
     },

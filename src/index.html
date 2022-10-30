@@ -1,9 +1,15 @@
 <div>
-  <img src="" alt="" id="img">
-  <div class="copyright">
+  <div id="img"></div>
+  <div class="copyright wallhaven hide">
     <a href="https://wallhaven.cc" target="_blank">
       <img src="https://wallhaven.cc/images/layout/logo.png" alt="">
       <p>The best wallpapers on the Net!</p>
+    </a>
+  </div>
+  <div class="copyright pixabay hide">
+    <a href="https://pixabay.com/" target="_blank">
+      <img src="https://pixabay.com/static/img/logo.svg" alt="" width="280">
+      <p> Free Images</p>
     </a>
   </div>
 </div>
@@ -13,20 +19,27 @@
     padding: 0;
   }
 
-  #img {
+  #img * {
     object-fit: cover;
     width: 100vw;
     height: 100vh;
   }
+
+  .hide {
+    visibility: hidden;
+  }
+
   .copyright {
     position: fixed;
     right: 30px;
     bottom: 80px;
   }
-  .copyright img{
+
+  .copyright img {
     display: block;
   }
-  .copyright a{
+
+  .copyright a {
     color: #fff;
     text-decoration: none;
     text-shadow: 1px 1px 0 rgb(0 0 0 / 50%);
@@ -34,34 +47,123 @@
 </style>
 
 <script>
-  let img = document.querySelector("#img");
+  (async function () {
+    const {
+      http: { fetch, ResponseType },
+      path: { appDir, join, extname },
+      tauri: { convertFileSrc, invoke },
+      fs: { createDir, BaseDirectory, readDir, writeBinaryFile }
+    } = window.__TAURI__;
 
-  let imgs = [];
+    const appDirPath = await appDir();
+
+    await createDir('databases/assets', { dir: BaseDirectory.App, recursive: true });
 
 
-  setInterval(timer, 30 * 1000)
-  timer();
+    const assetsDir = await join(appDirPath, 'databases', 'assets');
 
-  async function timer() {
-    if (imgs.length <= 0) {
-      await getRandomImages();
+
+
+    let img = document.querySelector("#img");
+
+
+    let existFileMap = (await readDir('databases/assets', { dir: BaseDirectory.App })).reduce((acc, it) => (acc.add(it.name), acc), new Set());
+    console.log(existFileMap)
+    let downloads = [];
+
+
+    setInterval(timer, 30 * 1000);
+    setInterval(() => {
+      getRandomImages();
+      getVideos();
+    }, 30 * 1000)
+    timer();
+
+    function getRandomAssets() {
+      let list = [...existFileMap.values()];
+      return list[Math.ceil(Math.random() * list.length)];
     }
-    let src = imgs.shift();
-    
-    window.__TAURI__.http.fetch(src, {
-      responseType: window.__TAURI__.http.ResponseType.Binary
-    }).then(res => {
-      img.src && URL.revokeObjectURL(img.src);
-      img.src = URL.createObjectURL(new Blob([new Uint8Array(res.data)], { type: res.headers["content-type"] }))
-    })
-  }
 
-  async function getRandomImages() {
-    const res = await window.__TAURI__.http.fetch("https://wallhaven.cc/api/v1/search?sorting=random");
-    imgs = res.data.data.map(v => v.path);
+    async function timer() {
+      let f = getRandomAssets();
+      if (!f) return;
+      const filePath = await join(assetsDir, f);
+      const assetUrl = convertFileSrc(filePath);
+      let displayElement = document.createElement(String(f).endsWith(".mp4") ? "video" : "img");
+      displayElement.src = assetUrl;
+      displayElement.autoplay = true;
+      img.innerHTML = (displayElement.outerHTML)
+      document.querySelectorAll(".copyright").forEach(v => {
+        v.classList.add("hide");
+      })
+      document.querySelector(".copyright." + f.split("-")[0])?.classList.remove("hide")
+    }
 
-  }
+    async function downloadFiles(url, filename) {
+      // const res = await fetch(url, {
+      //   responseType: ResponseType.Binary
+      // });
+      // await writeBinaryFile("databases/assets/" + filename, new Uint8Array(res.data), { dir: BaseDirectory.App });
+      await invoke("downloadFile", { url, filename: assetsDir + "/" + filename })
+      existFileMap.add(filename)
+    }
+
+    let downloading = false;
+    async function nextDownload() {
+      if (downloading) return;
+      downloading = true;
+      try {
+        let args = downloads.shift();
+        if (!args) return;
+        console.log(args);
+        await downloadFiles.apply(null, args);
+      } catch (error) {
+        console.log(error)
+      } finally {
+        downloading = false;
+      }
+
+      await new Promise(s => setTimeout(s), 10000)
+      nextDownload();
+    }
 
 
+    function getFileName(url) {
+      try {
+        let pathname = new URL(url).pathname;
+        let i = pathname.lastIndexOf("/");
+        if (i == -1) return url;
+        return pathname.substring(i + 1);
+      } catch (error) {
+        return url;
+      }
+    }
 
+
+    async function getRandomImages() {
+      const res = await fetch("https://wallhaven.cc/api/v1/search?sorting=random");
+
+      res.data.data.forEach(async v => {
+        let filename = `wallhaven-${v.id}.${await extname(getFileName(v.path))}`;
+        if (existFileMap.has(filename)) return;
+        downloads.push([v.path, filename])
+      });
+
+      nextDownload();
+    }
+    async function getVideos() {
+      if (!localStorage.pixabayPage) {
+        localStorage.pixabayPage = 1;
+      }
+      const res = await fetch("https://pixabay.com/api/videos/?key=&page=" + (localStorage.pixabayPage || 1));
+
+      res.data.hits.forEach(async v => {
+        let filename = `pixabay-${v.id}.${await extname(getFileName(v.videos.large.url))}`;
+        if (existFileMap.has((v.path))) return;
+        downloads.push([v.videos.large.url, filename])
+      })
+      localStorage.pixabayPage = parseInt(localStorage.pixabayPage) + 1;
+      nextDownload();
+    }
+  })()
 </script>
