@@ -25,6 +25,7 @@ pub fn init_menus(
             SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
                 "quit" => {
                     unsafe {
+                        #[cfg(windows)]
                         crate::window_api::stop_event_forward();
                     }
                     std::process::exit(0);
