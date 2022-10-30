@@ -1,0 +1,67 @@
+<div>
+  <img src="" alt="" id="img">
+  <div class="copyright">
+    <a href="https://wallhaven.cc" target="_blank">
+      <img src="https://wallhaven.cc/images/layout/logo.png" alt="">
+      <p>The best wallpapers on the Net!</p>
+    </a>
+  </div>
+</div>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+  }
+
+  #img {
+    object-fit: cover;
+    width: 100vw;
+    height: 100vh;
+  }
+  .copyright {
+    position: fixed;
+    right: 30px;
+    bottom: 80px;
+  }
+  .copyright img{
+    display: block;
+  }
+  .copyright a{
+    color: #fff;
+    text-decoration: none;
+    text-shadow: 1px 1px 0 rgb(0 0 0 / 50%);
+  }
+</style>
+
+<script>
+  let img = document.querySelector("#img");
+
+  let imgs = [];
+
+
+  setInterval(timer, 30 * 1000)
+  timer();
+
+  async function timer() {
+    if (imgs.length <= 0) {
+      await getRandomImages();
+    }
+    let src = imgs.shift();
+    
+    window.__TAURI__.http.fetch(src, {
+      responseType: window.__TAURI__.http.ResponseType.Binary
+    }).then(res => {
+      img.src && URL.revokeObjectURL(img.src);
+      img.src = URL.createObjectURL(new Blob([new Uint8Array(res.data)], { type: res.headers["content-type"] }))
+    })
+  }
+
+  async function getRandomImages() {
+    const res = await window.__TAURI__.http.fetch("https://wallhaven.cc/api/v1/search?sorting=random");
+    imgs = res.data.data.map(v => v.path);
+
+  }
+
+
+
+</script>
