@@ -5,6 +5,8 @@
 
 use std::{thread, time::Duration};
 mod menu;
+
+#[cfg(windows)]
 mod window_api;
 
 #[tauri::command]
