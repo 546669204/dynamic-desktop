@@ -219,3 +219,16 @@ pub unsafe fn ds2_toggle_show_desktop_icons() {
         );
     }
 }
+
+pub unsafe fn ds2_toggle_show_desktop_task() {
+    let h_task = FindWindowA(s!("Shell_TrayWnd"), None);
+    if h_task != HWND::default() {
+        let show = if IsWindowVisible(h_task).as_bool() {
+            SW_HIDE
+        } else {
+            SW_SHOW
+        };
+
+        ShowWindow(h_task, show);
+    }
+}

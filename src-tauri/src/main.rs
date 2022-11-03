@@ -16,6 +16,13 @@ fn toggle_desktop_icons_visable() {
         window_api::ds2_toggle_show_desktop_icons();
     }
 }
+#[tauri::command]
+fn toggle_desktop_task_visable() {
+    unsafe {
+        #[cfg(windows)]
+        window_api::ds2_toggle_show_desktop_task();
+    }
+}
 
 #[tauri::command]
 async fn downloadFile(url: String, filename: String) {
@@ -63,6 +70,7 @@ fn main() {
     })
     .invoke_handler(tauri::generate_handler![
         toggle_desktop_icons_visable,
+        toggle_desktop_task_visable,
         downloadFile
     ])
     .setup(|_app| {
