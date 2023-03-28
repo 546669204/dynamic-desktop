@@ -2,8 +2,8 @@
   "build": {
     "beforeDevCommand": "",
     "beforeBuildCommand": "",
-    "devPath": "../src",
-    "distDir": "../src",
+    "devPath": "http://localhost:3000",
+    "distDir": "http://localhost:3000",
     "withGlobalTauri": true
   },
   "package": {
@@ -89,7 +89,8 @@
         "width": 800,
         "transparent": true,
         "decorations": false,
-        "skipTaskbar": true
+        "skipTaskbar": true,
+        "url": "http://localhost:3000"
       }
     ],
     "systemTray": {

@@ -96,13 +96,23 @@ unsafe extern "system" fn low_level_keyboard_proc(
                     (1 | (p.scanCode << 16) | (1 << 24) | (0 << 29) | (0 << 30) | (0 << 31))
                         .try_into()
                         .unwrap();
-                PostMessageA(G_H_WND, wparam.0.try_into().unwrap(), WPARAM(p.vkCode.try_into().unwrap()), LPARAM(lp));
+                PostMessageA(
+                    G_H_WND,
+                    wparam.0.try_into().unwrap(),
+                    WPARAM(p.vkCode.try_into().unwrap()),
+                    LPARAM(lp),
+                );
             } else if wparam == WPARAM(WM_KEYUP.try_into().unwrap()) {
                 let lp: isize =
                     (1 | (p.scanCode << 16) | (1 << 24) | (0 << 29) | (1 << 30) | (1 << 31))
                         .try_into()
                         .unwrap();
-                PostMessageA(G_H_WND, wparam.0.try_into().unwrap(), WPARAM(p.vkCode.try_into().unwrap()), LPARAM(lp));
+                PostMessageA(
+                    G_H_WND,
+                    wparam.0.try_into().unwrap(),
+                    WPARAM(p.vkCode.try_into().unwrap()),
+                    LPARAM(lp),
+                );
             }
         }
     }
@@ -149,7 +159,7 @@ unsafe fn start_event_forward() -> bool {
         return false;
     }
     // G_H_LOW_LEVEL_KEYBOARD_HOOK =
-        // SetWindowsHookExA(WH_KEYBOARD_LL, Some(low_level_keyboard_proc), h_module, 0).unwrap();
+    // SetWindowsHookExA(WH_KEYBOARD_LL, Some(low_level_keyboard_proc), h_module, 0).unwrap();
     return true;
 }
 pub unsafe fn stop_event_forward() {
@@ -218,6 +228,28 @@ pub unsafe fn ds2_toggle_show_desktop_icons() {
             LPARAM::default(),
         );
     }
+}
+
+fn win11_toggle_desktop_task(num: i8) {
+    let reg_cmd = format!(
+        "reg add HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced /v HideIcons /t REG_DWORD /d {} /f",
+        num
+        );
+    Command::new("cmd")
+        .args(&[
+            "/C",
+            &reg_cmd,
+            "&&",
+            "taskkill",
+            "/f",
+            "/im",
+            "explorer.exe",
+            "&&",
+            "start",
+            "explorer.exe",
+        ])
+        .output()
+        .expect("执行命令失败");
 }
 
 pub unsafe fn ds2_toggle_show_desktop_task() {
