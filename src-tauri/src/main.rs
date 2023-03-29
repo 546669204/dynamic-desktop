@@ -4,10 +4,20 @@
 )]
 
 use std::{io::Write, thread, time::Duration};
+use tauri::{Manager};
+use tauri_plugin_autostart::MacosLauncher;
+
 mod menu;
 
 #[cfg(windows)]
 mod window_api;
+
+#[derive(Clone, serde::Serialize)]
+struct Payload {
+  args: Vec<String>,
+  cwd: String,
+}
+
 
 #[tauri::command]
 fn toggle_desktop_icons_visable() {
@@ -60,9 +70,7 @@ fn main() {
         window
             .eval(
                 r###"
-            window.addEventListener("dblclick",
-                () => window.__TAURI__.invoke("toggle_desktop_icons_visable")
-            )
+                // init script
             "###
                 .into(),
             )
@@ -80,6 +88,15 @@ fn main() {
         }
         Ok(())
     })
+    .plugin(tauri_plugin_sql::Builder::default().build())
+    .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+        println!("{}, {argv:?}, {cwd}", app.package_info().name);
+
+        app.emit_all("single-instance", Payload { args: argv, cwd })
+            .unwrap();
+    }))
+    .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec!["--flag1", "--flag2"]) /* arbitrary number of args to pass to your app */))
+
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

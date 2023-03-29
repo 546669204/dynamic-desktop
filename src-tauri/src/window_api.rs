@@ -1,4 +1,12 @@
+use std::ffi::CString;
+use std::process::Command;
+
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows::Win32::System::Registry::{
+    RegCloseKey, RegCreateKeyA, RegDeleteKeyA, RegOpenKeyA, RegOpenKeyExA, 
+    RegQueryValueA, RegQueryValueExA, RegSetKeyValueA, RegSetValueExA, RegSetValueExW, HKEY,
+    HKEY_CURRENT_USER, KEY_READ, KEY_WOW64_64KEY, REG_DWORD,
+};
 use windows::{
     core::*, Win32::Foundation::*, Win32::UI::Controls::*, Win32::UI::WindowsAndMessaging::*,
 };
@@ -228,28 +236,51 @@ pub unsafe fn ds2_toggle_show_desktop_icons() {
             LPARAM::default(),
         );
     }
+    win11_toggle_desktop_task(0);
 }
 
-fn win11_toggle_desktop_task(num: i8) {
-    let reg_cmd = format!(
-        "reg add HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced /v HideIcons /t REG_DWORD /d {} /f",
-        num
-        );
-    Command::new("cmd")
-        .args(&[
-            "/C",
-            &reg_cmd,
-            "&&",
-            "taskkill",
-            "/f",
-            "/im",
-            "explorer.exe",
-            "&&",
-            "start",
-            "explorer.exe",
-        ])
-        .output()
-        .expect("执行命令失败");
+unsafe fn win11_toggle_desktop_task(num: i8) {
+    let mut hkey = HKEY::default();
+    let lpPath = s!("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced");
+    let lpName = s!("HideIcons");
+    // 打开注册表项
+    if RegOpenKeyExA(
+        HKEY_CURRENT_USER,
+        lpPath,
+        0,
+        KEY_READ | KEY_WOW64_64KEY,
+        &mut hkey,
+    ) != ERROR_SUCCESS
+    {
+        return;
+    }
+    let value_data = 1;
+    let mut buf = [0u8; 260];
+    let mut buf_len = buf.len() as u32;
+
+    if RegQueryValueExA(
+        hkey,
+        lpName,
+        &mut 0,
+        &mut REG_DWORD,
+        buf.as_mut_ptr(),
+        &mut buf_len,
+    ) != ERROR_SUCCESS
+    {
+        RegCloseKey(hkey);
+        return;
+    }
+    dbg!(&buf);
+    let value_data = 1;
+    RegSetValueExA(
+        hkey,
+        lpName,
+        0,
+        REG_DWORD,
+        &value_data as *const _ as *const _,
+        std::mem::size_of::<u32>() as u32,
+    );
+    RegCloseKey(hkey);
 }
 
 pub unsafe fn ds2_toggle_show_desktop_task() {
