@@ -32,15 +32,22 @@ custom-protocol = [ "tauri/custom-protocol" ]
 
 
 [dependencies.windows]
-version = "0.39.0"
+version = "0.46.0"
 features = [
     "Win32_Foundation",
     "Win32_System_Threading",
     "Win32_System_Registry",
     "Win32_UI_WindowsAndMessaging",
+    "Win32_System_LibraryLoader",
+    "Win32_UI_Controls",
+    "Win32_System_SystemServices"
 ]
 
 [dependencies.tauri-plugin-sql]
 git = "https://github.com/tauri-apps/plugins-workspace"
 branch = "dev"
 features = ["sqlite"] # or "postgres", or "mysql"
+
+[dependencies.url]
+version = "2.2"
+features = ["serde"]

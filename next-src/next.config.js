@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'export',
+  trailingSlash: true,
   reactStrictMode: true,
   // Note: This feature is required to use NextJS Image in SSG mode.
   // 请参见 https://nextjs.org/docs/messages/export-image-api 来了解不同的解决方法。

@@ -4,27 +4,27 @@
 )]
 
 use std::{io::Write, thread, time::Duration};
-use tauri::{Manager};
+use tauri::Manager;
 use tauri_plugin_autostart::MacosLauncher;
 
 mod menu;
+mod open;
 
 #[cfg(windows)]
 mod window_api;
 
 #[derive(Clone, serde::Serialize)]
 struct Payload {
-  args: Vec<String>,
-  cwd: String,
+    args: Vec<String>,
+    cwd: String,
 }
-
 
 #[tauri::command]
 fn toggle_desktop_icons_visable() {
-    unsafe {
+    thread::spawn(|| unsafe {
         #[cfg(windows)]
         window_api::ds2_toggle_show_desktop_icons();
-    }
+    });
 }
 #[tauri::command]
 fn toggle_desktop_task_visable() {
@@ -35,7 +35,15 @@ fn toggle_desktop_task_visable() {
 }
 
 #[tauri::command]
-async fn downloadFile(url: String, filename: String) {
+fn get_desktop_task_rect() -> serde_json::Value {
+    unsafe {
+        #[cfg(windows)]
+        window_api::get_desktop_task_rect()
+    }
+}
+
+#[tauri::command]
+async fn download_file(url: String, filename: String) {
     use tauri::api::http::{ClientBuilder, HttpRequestBuilder, ResponseType};
     let client = ClientBuilder::new().build().unwrap();
     let response = client
@@ -79,7 +87,8 @@ fn main() {
     .invoke_handler(tauri::generate_handler![
         toggle_desktop_icons_visable,
         toggle_desktop_task_visable,
-        downloadFile
+        download_file,
+        get_desktop_task_rect
     ])
     .setup(|_app| {
         unsafe {
@@ -95,8 +104,10 @@ fn main() {
         app.emit_all("single-instance", Payload { args: argv, cwd })
             .unwrap();
     }))
-    .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec!["--flag1", "--flag2"]) /* arbitrary number of args to pass to your app */))
-
+    .plugin(tauri_plugin_autostart::init(
+        MacosLauncher::LaunchAgent,
+        Some(vec!["--flag1", "--flag2"]), /* arbitrary number of args to pass to your app */
+    ))
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
