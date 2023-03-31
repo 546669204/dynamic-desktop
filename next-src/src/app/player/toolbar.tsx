@@ -3,7 +3,7 @@ import AngleRight from "@/../public/angle-right.svg";
 import PlaySvg from "@/../public/play.svg";
 import PauseSvg from "@/../public/pause.svg";
 import useTimer from "./useTimer";
-import { useCallback } from "react";
+import React, { useCallback } from "react";
 
 const ToolBar = ({
   onNext, taskbarHeight
@@ -15,7 +15,7 @@ const ToolBar = ({
   const nextAndReset = useCallback(() => {
     onNext();
     reset();
-  }, [])
+  }, [onNext, reset])
 
   return (
     <div style={{
