@@ -18,6 +18,9 @@ tauri-build = { version = "1.1", features = [] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "1.1", features = ["devtools", "fs-all", "http-all", "path-all", "protocol-asset", "shell-open", "system-tray"] }
+tauri-invoke-http = { git = "https://github.com/tauri-apps/tauri-invoke-http", branch = "dev" }
+tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "dev" }
+tauri-plugin-autostart = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "dev" }
 
 [features]
 # by default Tauri runs in production mode
@@ -29,10 +32,22 @@ custom-protocol = [ "tauri/custom-protocol" ]
 
 
 [dependencies.windows]
-version = "0.39.0"
+version = "0.46.0"
 features = [
     "Win32_Foundation",
     "Win32_System_Threading",
+    "Win32_System_Registry",
     "Win32_UI_WindowsAndMessaging",
+    "Win32_System_LibraryLoader",
+    "Win32_UI_Controls",
+    "Win32_System_SystemServices"
 ]
 
+[dependencies.tauri-plugin-sql]
+git = "https://github.com/tauri-apps/plugins-workspace"
+branch = "dev"
+features = ["sqlite"] # or "postgres", or "mysql"
+
+[dependencies.url]
+version = "2.2"
+features = ["serde"]

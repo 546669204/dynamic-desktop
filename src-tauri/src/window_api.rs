@@ -1,4 +1,13 @@
+use std::ffi::CString;
+use std::process::Command;
+
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows::Win32::System::Registry::{
+    RegCloseKey, RegCreateKeyA, RegDeleteKeyA, RegOpenKeyA, RegOpenKeyExA, RegQueryValueA,
+    RegQueryValueExA, RegSetKeyValueA, RegSetValueExA, RegSetValueExW, HKEY, HKEY_CURRENT_USER,
+    KEY_READ, KEY_WOW64_64KEY, REG_DWORD,
+};
+use windows::Win32::System::SystemServices::{MK_LBUTTON, MK_XBUTTON1};
 use windows::{
     core::*, Win32::Foundation::*, Win32::UI::Controls::*, Win32::UI::WindowsAndMessaging::*,
 };
@@ -14,7 +23,7 @@ pub unsafe fn set_desktop_split() {
         None,
         SEND_MESSAGE_TIMEOUT_FLAGS(0),
         2,
-        &mut lpdwresult,
+        Some(&mut lpdwresult),
     );
 
     unsafe extern "system" fn enum_func_callback(hwnd: HWND, _param: LPARAM) -> BOOL {
@@ -96,13 +105,23 @@ unsafe extern "system" fn low_level_keyboard_proc(
                     (1 | (p.scanCode << 16) | (1 << 24) | (0 << 29) | (0 << 30) | (0 << 31))
                         .try_into()
                         .unwrap();
-                PostMessageA(G_H_WND, wparam.0.try_into().unwrap(), WPARAM(p.vkCode.try_into().unwrap()), LPARAM(lp));
+                PostMessageA(
+                    G_H_WND,
+                    wparam.0.try_into().unwrap(),
+                    WPARAM(p.vkCode.try_into().unwrap()),
+                    LPARAM(lp),
+                );
             } else if wparam == WPARAM(WM_KEYUP.try_into().unwrap()) {
                 let lp: isize =
                     (1 | (p.scanCode << 16) | (1 << 24) | (0 << 29) | (1 << 30) | (1 << 31))
                         .try_into()
                         .unwrap();
-                PostMessageA(G_H_WND, wparam.0.try_into().unwrap(), WPARAM(p.vkCode.try_into().unwrap()), LPARAM(lp));
+                PostMessageA(
+                    G_H_WND,
+                    wparam.0.try_into().unwrap(),
+                    WPARAM(p.vkCode.try_into().unwrap()),
+                    LPARAM(lp),
+                );
             }
         }
     }
@@ -123,7 +142,7 @@ unsafe extern "system" fn low_level_mouse_proc(
                 PostMessageA(
                     G_H_WND,
                     wparam.0.try_into().unwrap(),
-                    WPARAM(MK_XBUTTON1.try_into().unwrap()),
+                    WPARAM(MK_XBUTTON1.0 as usize),
                     LPARAM(lp),
                 );
             } else if wparam == WPARAM(WM_LBUTTONDOWN.try_into().unwrap())
@@ -132,7 +151,7 @@ unsafe extern "system" fn low_level_mouse_proc(
                 PostMessageA(
                     G_H_WND,
                     wparam.0.try_into().unwrap(),
-                    WPARAM(MK_LBUTTON.try_into().unwrap()),
+                    WPARAM(MK_LBUTTON.0 as usize),
                     LPARAM(lp),
                 );
             }
@@ -149,7 +168,7 @@ unsafe fn start_event_forward() -> bool {
         return false;
     }
     // G_H_LOW_LEVEL_KEYBOARD_HOOK =
-        // SetWindowsHookExA(WH_KEYBOARD_LL, Some(low_level_keyboard_proc), h_module, 0).unwrap();
+    // SetWindowsHookExA(WH_KEYBOARD_LL, Some(low_level_keyboard_proc), h_module, 0).unwrap();
     return true;
 }
 pub unsafe fn stop_event_forward() {
@@ -218,6 +237,42 @@ pub unsafe fn ds2_toggle_show_desktop_icons() {
             LPARAM::default(),
         );
     }
+    // win11_toggle_desktop_task(0);
+}
+
+unsafe fn win11_toggle_desktop_task(num: i8) {
+    let mut hkey: HKEY = HKEY::default();
+    let lp_path = s!("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced");
+    let lp_name = s!("HideIcons");
+    // 打开注册表项
+    if RegOpenKeyExA(
+        HKEY_CURRENT_USER,
+        lp_path,
+        0,
+        KEY_READ | KEY_WOW64_64KEY,
+        &mut hkey,
+    ) != ERROR_SUCCESS
+    {
+        return;
+    }
+    let mut buf = [0u8; 4];
+    let mut buf_len = buf.len() as u32;
+
+    if RegQueryValueExA(
+        hkey,
+        lp_name,
+        None,
+        None,
+        Some(buf.as_mut_ptr()),
+        Some(&mut buf_len),
+    ) != ERROR_SUCCESS
+    {
+        RegCloseKey(hkey);
+        return;
+    }
+    buf[1] = if buf[1] == 1 { 0 } else { 1 };
+    RegSetValueExA(hkey, lp_name, 0, REG_DWORD, Some(&buf));
+    RegCloseKey(hkey);
 }
 
 pub unsafe fn ds2_toggle_show_desktop_task() {
@@ -231,4 +286,18 @@ pub unsafe fn ds2_toggle_show_desktop_task() {
 
         ShowWindow(h_task, show);
     }
+}
+
+pub unsafe fn get_desktop_task_rect() -> serde_json::Value {
+    let mut rect = RECT::default();
+    let h_task = FindWindowA(s!("Shell_TrayWnd"), None);
+    if h_task != HWND::default() {
+        GetWindowRect(h_task, &mut rect).as_bool();
+    }
+    serde_json::json!({
+        "left":rect.left,
+        "top":rect.top,
+        "right":rect.right,
+        "bottom":rect.bottom,
+    })
 }

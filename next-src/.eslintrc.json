@@ -1,0 +1,29 @@
+{
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:react/recommended"
+  ],
+  "rules": {
+    "react-perf/jsx-no-new-object-as-prop": 0,
+    "import/extensions": 0,
+    "fp/no-mutation": 0,
+    "prettier/prettier": 0,
+    "padding-line-between-statements":0
+  },
+  "ignorePatterns": [
+    ".next/*"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "server/**/*.js"
+      ],
+      "extends": [
+        "hardcore/node"
+      ],
+      "env": {
+        "browser": false
+      }
+    }
+  ]
+}

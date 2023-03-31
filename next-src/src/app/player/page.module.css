@@ -1,0 +1,33 @@
+/* * {
+  margin: 0;
+  padding: 0;
+} */
+.img {
+  display: flex;
+}
+
+.img * {
+  object-fit: cover;
+  width: 100vw;
+  height: 100vh;
+}
+
+.hide {
+  visibility: hidden;
+}
+
+.copyright {
+  position: fixed;
+  left: 30px;
+  bottom: 30px;
+}
+
+.copyright img {
+  display: block;
+}
+
+.copyright a {
+  color: #fff;
+  text-decoration: none;
+  text-shadow: 1px 1px 0 rgb(0 0 0 / 50%);
+}
