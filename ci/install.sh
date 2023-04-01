@@ -2,11 +2,15 @@
 
 set -vex
 
-yarn add -D @tauri-apps/cli
+if which cargo-tauri > /dev/null; then
+    echo "Command exists"
+else
+    cargo install tauri-cli
+fi
 
-# rm -rf target/release/bundle
+rm -rf target/release/bundle
 
 # cargo tauri build --verbose
-yarn tauri build -r
+cargo tauri build -r
 
   
